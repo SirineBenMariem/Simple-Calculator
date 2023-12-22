@@ -1,32 +1,42 @@
 <?php
 function calculate_expression($expression) {
-    $tokens = preg_split('/([+\-*\/])/', $expression, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+    $expression = trim($expression);
+    if (empty($expression)) return 0;
+
+    if (!preg_match('~^[\+\-*/]?(\d+(\.\d+)?[\+\-*/%])*[\d]+$~', $expression)) {
+        throw new Exception("Invalid expression format");
+    }
+
+    $tokens = preg_split('~([+\-*\/%])~', $expression, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
     
     $values = [];
     $ops = [];
-    $precedence = ['+' => 1, '-' => 1, '*' => 2, '/' => 2];
+    $precedence = ['+' => 1, '-' => 1, '*' => 2, '/' => 2, '%' => 2];
     
     foreach ($tokens as $token) {
         if (is_numeric($token)) {
             $values[] = floatval($token);
         } else if (isset($precedence[$token])) {
-            while (!empty($ops) && $precedence[$token] <= $precedence[end($ops)]) {
+            while (!empty($ops) and $precedence[$token] <= $precedence[end($ops)]) {
                 $val2 = array_pop($values);
                 $val1 = array_pop($values);
                 $op = array_pop($ops);
 
                 switch ($op) {
                     case '+':
-                        $values[] = somme($val1, $val2);
+                        $values[] = add($val1, $val2);
                         break;
                     case '-':
-                        $values[] = sous($val1, $val2);
+                        $values[] = subtract($val1, $val2);
                         break;
                     case '*':
-                        $values[] = mult($val1, $val2);
+                        $values[] = multiply($val1, $val2);
                         break;
                     case '/':
-                        $values[] = div($val1, $val2);
+                        $values[] = divide($val1, $val2);
+                        break;
+                    case '%':
+                        $values[] = mod($val1, $val2);
                         break;
                 }
             }
@@ -43,16 +53,19 @@ function calculate_expression($expression) {
 
         switch ($op) {
             case '+':
-                $values[] = somme($val1, $val2);
+                $values[] = add($val1, $val2);
                 break;
             case '-':
-                $values[] = sous($val1, $val2);
+                $values[] = subtract($val1, $val2);
                 break;
             case '*':
-                $values[] = mult($val1, $val2);
+                $values[] = multiply($val1, $val2);
                 break;
             case '/':
-                $values[] = div($val1, $val2);
+                $values[] = divide($val1, $val2);
+                break;
+            case '%':
+                $values[] = mod($val1, $val2);
                 break;
         }
     }
@@ -60,25 +73,30 @@ function calculate_expression($expression) {
     return array_pop($values);
 }
 
-
-
-function somme($a , $b ) { 
+function add($a, $b) { 
     return $a + $b;
 }
 
-function sous($a , $b ) { 
+function subtract($a, $b) { 
     return $a - $b;
 }
 
-function mult($a , $b ) { 
+function multiply($a, $b) { 
     return $a * $b;
 }
 
-function div($a, $b) { 
+function divide($a, $b) { 
     if ($b == 0) {
         throw new Exception("Cannot divide by zero.");
     }
     return $a / $b;
 }
 
+function mod($a, $b) {
+    if ($b == 0) {
+        throw new Exception("Cannot calculate modulo with divisor zero.");
+    }
+
+    return ($a % $b + $b) % $b;
+}
 ?>
